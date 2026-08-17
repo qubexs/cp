@@ -1,69 +1,195 @@
-import Image from "next/image";
+"use client";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+import AuthScreen from "@/components/AuthScreen";
+import KeyManager from "@/components/KeyManager";
+import Sidebar, { type ToolId } from "@/components/Sidebar";
+import PromptForge from "@/components/tools/PromptForge";
+import ScanTool from "@/components/tools/ScanTool";
+import {
+  addKey,
+  enabledKeysCount,
+  getAccount,
+  getSessionEmail,
+  logout,
+  removeKey,
+  setKeyEnabled,
+  type Account,
+} from "@/lib/auth";
+import { SCANS } from "@/lib/scan";
+
+function Splash() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-zinc-950 text-zinc-100">
+      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_at_top,rgba(168,85,247,0.10),transparent_55%)]" />
+      <div className="relative flex flex-col items-center gap-2">
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-fuchsia-500 to-sky-500 text-2xl font-bold text-white">
+          ⚡
+        </div>
+        <p className="text-xs text-zinc-500">Prompt Forge loading…</p>
+      </div>
+    </div>
+  );
+}
 
 export default function Home() {
+  const [account, setAccount] = useState<Account | null>(null);
+  const [ready, setReady] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [keysModalOpen, setKeysModalOpen] = useState(false);
+  const [activeTool, setActiveTool] = useState<ToolId>("forge");
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const email = getSessionEmail();
+      setAccount(email ? getAccount(email) : null);
+      setReady(true);
+    }, 0);
+    return () => clearTimeout(t);
+  }, []);
+
+  const refreshAccount = useCallback(() => {
+    const email = getSessionEmail();
+    setAccount(email ? getAccount(email) : null);
+  }, []);
+
+  const handleSignOut = () => {
+    logout();
+    setAccount(null);
+    setSidebarOpen(false);
+    setKeysModalOpen(false);
+  };
+
+  const enabledTotal = useMemo(
+    () => (account ? enabledKeysCount(account.email) : 0),
+    [account]
+  );
+
+  if (!ready) return <Splash />;
+
+  if (!account) {
+    return <AuthScreen onAuthed={(a) => setAccount(a)} />;
+  }
+
+  const openKeys = () => setKeysModalOpen(true);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <div className="min-h-screen bg-zinc-950 text-zinc-100">
+      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_at_top,rgba(168,85,247,0.06),transparent_55%)]" />
+
+      <Sidebar
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        active={activeTool}
+        onSelect={setActiveTool}
+        account={account}
+        enabledCount={enabledTotal}
+        onManageKeys={openKeys}
+        onSignOut={handleSignOut}
+      />
+
+      <header className="relative mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-3 px-4 pb-2 pt-6">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setSidebarOpen((o) => !o)}
+            aria-label={sidebarOpen ? "Close menu" : "Open menu"}
+            aria-expanded={sidebarOpen}
+            className="flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-700 bg-zinc-900 text-zinc-300 transition-colors hover:border-fuchsia-500/60 hover:text-fuchsia-300"
           >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            <span className="relative block h-3.5 w-5">
+              <span
+                className={`absolute left-0 top-0 h-0.5 w-5 rounded-full bg-current transition-all duration-200 ${
+                  sidebarOpen ? "top-1.5 rotate-45" : ""
+                }`}
+              />
+              <span
+                className={`absolute left-0 top-1.5 h-0.5 w-5 rounded-full bg-current transition-all duration-200 ${
+                  sidebarOpen ? "opacity-0" : ""
+                }`}
+              />
+              <span
+                className={`absolute left-0 top-3 h-0.5 w-5 rounded-full bg-current transition-all duration-200 ${
+                  sidebarOpen ? "top-1.5 -rotate-45" : ""
+                }`}
+              />
+            </span>
+          </button>
+          <div>
+            <h1 className="text-lg font-bold tracking-tight">Prompt Forge</h1>
+            <p className="text-[11px] text-zinc-500">
+              Reference files → ready-to-paste generation prompts (text only)
+            </p>
+          </div>
         </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="hidden items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1.5 text-[11px] font-medium text-emerald-300 sm:flex">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+            {account.email}
+          </span>
+          <button
+            onClick={openKeys}
+            className={`rounded-lg border px-3 py-1.5 text-xs transition-colors ${
+              enabledTotal === 0
+                ? "border-red-500/50 bg-red-500/10 text-red-300 hover:bg-red-500/20"
+                : "border-zinc-700 text-zinc-300 hover:border-fuchsia-500/60 hover:text-fuchsia-300"
+            }`}
+          >
+            Keys {enabledTotal}/{account.keys.length}
+          </button>
+          <button
+            onClick={handleSignOut}
+            className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs text-zinc-400 transition-colors hover:border-red-500/50 hover:text-red-300"
+          >
+            Sign out
+          </button>
+        </div>
+      </header>
+
+      <main
+        className={`relative mx-auto w-full max-w-4xl px-4 pb-16 pt-6 transition-[padding] duration-300 ${
+          sidebarOpen ? "lg:pl-64" : ""
+        }`}
+      >
+        {activeTool === "forge" ? (
+          <PromptForge account={account} refreshAccount={refreshAccount} openKeys={openKeys} />
+        ) : (
+          <ScanTool
+            account={account}
+            config={SCANS[activeTool]}
+            refreshAccount={refreshAccount}
+            openKeys={openKeys}
+          />
+        )}
+
+        <footer className="pt-8 text-center text-[11px] text-zinc-600">
+          Prompt Forge · production toolkit · all analysis runs through your own OpenRouter keys · no
+          images or videos are generated
+        </footer>
       </main>
+
+      {keysModalOpen && (
+        <KeyManager
+          account={account}
+          onAdd={(key, label) => {
+            try {
+              addKey(account.email, key, label);
+              refreshAccount();
+              return null;
+            } catch (e) {
+              return e instanceof Error ? e.message : "Could not add key.";
+            }
+          }}
+          onRemove={(keyId) => {
+            removeKey(account.email, keyId);
+            refreshAccount();
+          }}
+          onToggle={(keyId, enabled) => {
+            setKeyEnabled(account.email, keyId, enabled);
+            refreshAccount();
+          }}
+          onClose={() => setKeysModalOpen(false)}
+        />
+      )}
     </div>
   );
 }
