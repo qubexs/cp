@@ -1,7 +1,10 @@
+import type { Provider } from "./types";
+
 export interface StoredKey {
   id: string;
   key: string;
   label: string;
+  provider: Provider;
   enabled: boolean;
   addedAt: number;
   uses: number;
@@ -26,7 +29,19 @@ function loadAccounts(): Record<string, Account> {
   if (!hasWindow) return {};
   try {
     const raw = localStorage.getItem(ACCOUNTS_STORAGE);
-    return raw ? (JSON.parse(raw) as Record<string, Account>) : {};
+    const accounts = raw
+      ? (JSON.parse(raw) as Record<string, Account>)
+      : {};
+    for (const email of Object.keys(accounts)) {
+      const a = accounts[email];
+      if (a.keys) {
+        a.keys = a.keys.map((k) => ({
+          ...k,
+          provider: k.provider ?? "openrouter",
+        }));
+      }
+    }
+    return accounts;
   } catch {
     return {};
   }
@@ -130,19 +145,42 @@ export function updateAccount(account: Account) {
   saveAccounts(accounts);
 }
 
-export function addKey(email: string, apiKey: string, label: string): StoredKey {
+export function addKey(
+  email: string,
+  apiKey: string,
+  label: string,
+  provider: Provider
+): StoredKey {
   const normalized = normalizeEmail(email);
   const account = getAccount(normalized);
   if (!account) throw new Error("Account not found.");
-  if (!/^sk-or-v1-/i.test(apiKey.trim()))
-    throw new Error("Key should start with sk-or-v1-.");
-  if (account.keys.some((k) => k.key === apiKey.trim()))
+
+  const trimmed = apiKey.trim();
+  const valid =
+    provider === "openrouter"
+      ? /^sk-or-v1-/i.test(trimmed)
+      : provider === "google"
+        ? /^AIza[0-9A-Za-z_-]{20,}$/.test(trimmed)
+        : provider === "huggingface"
+          ? /^hf_[0-9A-Za-z]{10,}$/.test(trimmed)
+          : true;
+  if (!valid) {
+    throw new Error(
+      provider === "openrouter"
+        ? "Key should start with sk-or-v1-."
+        : provider === "google"
+          ? "Google keys start with AIza (create one at aistudio.google.com/app/apikey)."
+          : "Hugging Face keys start with hf_ (create one at huggingface.co/settings/tokens)."
+    );
+  }
+  if (account.keys.some((k) => k.key === trimmed))
     throw new Error("This key is already stored.");
 
   const stored: StoredKey = {
     id: randomId(),
-    key: apiKey.trim(),
+    key: trimmed,
     label: label.trim() || `Key ${account.keys.length + 1}`,
+    provider,
     enabled: true,
     addedAt: Date.now(),
     uses: 0,

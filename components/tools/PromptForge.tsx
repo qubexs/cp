@@ -129,7 +129,7 @@ export default function PromptForge({
       setLoading(true);
       try {
         const r = await analyzeAndBuildPrompt({
-          keys: order.map((k) => ({ id: k.id, key: k.key, label: k.label })),
+          keys: order.map((k) => ({ id: k.id, key: k.key, label: k.label, provider: k.provider })),
           model,
           target: t,
           attachments,

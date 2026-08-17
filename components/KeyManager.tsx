@@ -7,6 +7,8 @@ import {
   nextRotationOrder,
   type Account,
 } from "@/lib/auth";
+import { PROVIDERS } from "@/lib/providers";
+import type { Provider } from "@/lib/types";
 
 export default function KeyManager({
   account,
@@ -16,31 +18,34 @@ export default function KeyManager({
   onClose,
 }: {
   account: Account;
-  onAdd: (key: string, label: string) => string | null;
+  onAdd: (key: string, label: string, provider: Provider) => string | null;
   onRemove: (keyId: string) => void;
   onToggle: (keyId: string, enabled: boolean) => void;
   onClose: () => void;
 }) {
   const [newKey, setNewKey] = useState("");
   const [newLabel, setNewLabel] = useState("");
+  const [provider, setProvider] = useState<Provider>("openrouter");
   const [feedback, setFeedback] = useState<string | null>(null);
   const [feedbackOk, setFeedbackOk] = useState(false);
 
   const enabledCount = enabledKeysCount(account.email);
   const next = nextRotationOrder(account.email)[0];
 
+  const providerConfig = PROVIDERS.find((p) => p.id === provider) ?? PROVIDERS[0];
+
   const add = () => {
     setFeedback(null);
     if (!newKey.trim()) {
-      setFeedback("Paste an OpenRouter API key first.");
+      setFeedback(`Paste a ${providerConfig.short} API key first.`);
       setFeedbackOk(false);
       return;
     }
     try {
-      onAdd(newKey.trim(), newLabel.trim());
+      onAdd(newKey.trim(), newLabel.trim(), provider);
       setNewKey("");
       setNewLabel("");
-      setFeedback("Key added and enabled. It is now in the rotation pool.");
+      setFeedback(`Key added and enabled. It is now in the rotation pool.`);
       setFeedbackOk(true);
     } catch (e) {
       setFeedback(e instanceof Error ? e.message : "Could not add key.");
@@ -76,6 +81,20 @@ export default function KeyManager({
             <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-500">
               Add a key
             </label>
+            <select
+              value={provider}
+              onChange={(e) => {
+                setProvider(e.target.value as Provider);
+                setNewKey("");
+              }}
+              className="mb-2 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none transition-colors focus:border-fuchsia-500"
+            >
+              {PROVIDERS.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.label}
+                </option>
+              ))}
+            </select>
             <input
               value={newLabel}
               onChange={(e) => setNewLabel(e.target.value)}
@@ -89,11 +108,14 @@ export default function KeyManager({
               onKeyDown={(e) => {
                 if (e.key === "Enter") add();
               }}
-              placeholder="sk-or-v1-..."
+              placeholder={providerConfig.placeholder}
               spellCheck={false}
               autoComplete="off"
               className="mb-2 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 font-mono text-sm text-zinc-100 outline-none transition-colors placeholder:text-zinc-600 focus:border-fuchsia-500"
             />
+            <p className="mb-2 text-[11px] leading-relaxed text-zinc-500">
+              {providerConfig.hint}
+            </p>
             {feedback && (
               <p
                 className={`mb-2 text-xs ${feedbackOk ? "text-emerald-400" : "text-red-400"}`}
@@ -111,8 +133,8 @@ export default function KeyManager({
 
           {account.keys.length === 0 ? (
             <div className="rounded-xl border border-dashed border-zinc-700 p-6 text-center text-sm text-zinc-500">
-              No keys yet. Add your OpenRouter key(s) above — add several to enable automatic
-              rotation and fallback.
+              No keys yet. Add OpenRouter, Google, or Hugging Face keys above — add several to
+              enable automatic rotation and fallback.
             </div>
           ) : (
             <ul className="space-y-2">
@@ -146,6 +168,11 @@ export default function KeyManager({
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <p className="truncate text-sm font-medium text-zinc-100">{k.label}</p>
+                        {PROVIDERS.find((p) => p.id === k.provider) && (
+                          <span className="flex-shrink-0 rounded-full border border-zinc-700 bg-zinc-800 px-2 py-0.5 text-[10px] font-medium text-zinc-400">
+                            {PROVIDERS.find((p) => p.id === k.provider)?.short}
+                          </span>
+                        )}
                         {k.id === next?.id && k.enabled && (
                           <span className="flex-shrink-0 rounded-full border border-fuchsia-500/40 bg-fuchsia-500/10 px-2 py-0.5 text-[10px] font-medium text-fuchsia-300">
                             next up

@@ -1,100 +1,29 @@
 import {
-  OPENROUTER_ENDPOINT,
   type AttemptDetail,
   type Attachment,
   type ChatResult,
   type ModelChoice,
   type OutputTarget,
+  type Provider,
 } from "./types";
 import { buildSystemPrompt, buildUserPrompt, describeTextFile, kindForFile, truncateText } from "./prompts";
+import {
+  ProviderError,
+  sendProviderRequest,
+} from "./providers";
+import type { ChatMessage, ContentPart } from "./providers";
 
-export class OpenRouterError extends Error {
-  status: number;
-  provider?: string;
-  attempts?: AttemptDetail[];
-  constructor(message: string, status: number, provider?: string) {
-    super(message);
-    this.name = "OpenRouterError";
-    this.status = status;
-    this.provider = provider;
-  }
-}
+export {
+  ProviderError as OpenRouterError,
+  type ChatMessage,
+  type ContentPart,
+} from "./providers";
 
 export interface KeyOption {
   id?: string;
   key: string;
   label: string;
-}
-
-export interface ContentPart {
-  type: string;
-  text?: string;
-  image_url?: { url: string };
-  video_url?: { url: string };
-}
-
-export interface ChatMessage {
-  role: "system" | "user" | "assistant";
-  content: string | ContentPart[];
-}
-
-async function callOpenRouterOnce(
-  apiKey: string,
-  model: ModelChoice,
-  body: { messages: ChatMessage[]; temperature?: number; max_tokens?: number }
-): Promise<{ content: string; model: string }> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 300000);
-
-  try {
-    const res = await fetch(OPENROUTER_ENDPOINT, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey.trim()}`,
-        "Content-Type": "application/json",
-        ...(typeof window !== "undefined"
-          ? { "HTTP-Referer": window.location.origin, "X-Title": "Prompt Forge" }
-          : {}),
-      },
-      body: JSON.stringify({ model, ...body }),
-      signal: controller.signal,
-    });
-
-    if (!res.ok) {
-      let message = `HTTP ${res.status}`;
-      try {
-        const err = await res.json();
-        if (err?.error?.message) message = err.error.message;
-        if (err?.error?.code) message = `${err.error.code}: ${message}`;
-      } catch {
-        /* ignore */
-      }
-      throw new OpenRouterError(message, res.status);
-    }
-
-    const data = await res.json();
-    const contentString =
-      data?.choices?.[0]?.message?.content ?? data?.choices?.[0]?.text ?? "";
-
-    if (!contentString) {
-      throw new OpenRouterError(
-        "The model returned an empty response. Try a different model or retry.",
-        0
-      );
-    }
-
-    return { content: contentString.trim(), model: data?.model ?? model };
-  } catch (err) {
-    if (err instanceof DOMException && err.name === "AbortError") {
-      throw new OpenRouterError(
-        "Request timed out after 5 minutes. The file may be too large — try a smaller reference or a faster model.",
-        0
-      );
-    }
-    throw err;
-  } finally {
-    clearTimeout(timeout);
-  }
+  provider: Provider;
 }
 
 function maskKey(key: string): string {
@@ -105,6 +34,7 @@ function maskKey(key: string): string {
 /**
  * Sends a chat request using the account's keys with rotation + failover.
  * Keys are tried in the provided order; on failure the next key is tried automatically.
+ * Each key is routed to its own provider (OpenRouter / Google / Hugging Face).
  */
 export async function chatWithKeys(params: {
   keys: KeyOption[];
@@ -115,7 +45,7 @@ export async function chatWithKeys(params: {
 
   const usable = keys.filter((k) => k.key.trim().length > 0);
   if (usable.length === 0) {
-    throw new OpenRouterError(
+    throw new ProviderError(
       "No enabled API keys. Add or enable at least one key in your account settings.",
       0
     );
@@ -126,11 +56,17 @@ export async function chatWithKeys(params: {
 
   for (const k of usable) {
     try {
-      const res = await callOpenRouterOnce(k.key, model, body);
+      const res = await sendProviderRequest({
+        provider: k.provider,
+        apiKey: k.key,
+        model,
+        body,
+      });
       attempts.push({ keyId: k.id, label: k.label, ok: true });
       return {
         content: res.content,
         model: res.model,
+        provider: k.provider,
         usedKeyId: k.id,
         usedKey: maskKey(k.key),
         attempts,
@@ -147,7 +83,7 @@ export async function chatWithKeys(params: {
     }
   }
 
-  const wrapped = new OpenRouterError(
+  const wrapped = new ProviderError(
     `All ${usable.length} key(s) failed. Last error: ${lastError?.message ?? "unknown"} (${attempts.filter((a) => !a.ok).length} attempt(s) failed).`,
     0
   );

@@ -1,5 +1,7 @@
 export type OutputTarget = "text" | "image" | "video";
 
+export type Provider = "openrouter" | "google" | "huggingface";
+
 export type AttachmentKind =
   | "image"
   | "video"
@@ -28,6 +30,7 @@ export interface AttemptDetail {
 export interface ChatResult {
   content: string;
   model: string;
+  provider?: Provider;
   usedKeyId?: string;
   usedKey?: string;
   attempts?: AttemptDetail[];
@@ -73,36 +76,46 @@ export const MODELS = [
     label: "Gemini 2.5 Flash (image + video + text)",
     vision: true,
     video: true,
+    providers: ["openrouter", "google", "huggingface"] as const satisfies readonly Provider[],
+    googleId: "gemini-2.5-flash",
+    hfId: "google/gemini-2.5-flash",
   },
   {
     id: "google/gemini-2.0-flash-001",
     label: "Gemini 2.0 Flash (image + video + text)",
     vision: true,
     video: true,
+    providers: ["openrouter", "google"] as const satisfies readonly Provider[],
+    googleId: "gemini-2.0-flash",
   },
   {
     id: "qwen/qwen-2.5-vl-72b-instruct",
     label: "Qwen2.5-VL 72B (image + video + text)",
     vision: true,
     video: true,
+    providers: ["openrouter", "huggingface"] as const satisfies readonly Provider[],
+    hfId: "Qwen/Qwen2.5-VL-72B-Instruct",
   },
   {
     id: "openai/gpt-4o-mini",
     label: "GPT-4o mini (image + text)",
     vision: true,
     video: false,
+    providers: ["openrouter"] as const satisfies readonly Provider[],
   },
   {
     id: "openai/gpt-4o",
     label: "GPT-4o (image + text)",
     vision: true,
     video: false,
+    providers: ["openrouter"] as const satisfies readonly Provider[],
   },
   {
     id: "anthropic/claude-3.5-sonnet",
     label: "Claude 3.5 Sonnet (image + text)",
     vision: true,
     video: false,
+    providers: ["openrouter"] as const satisfies readonly Provider[],
   },
 ] as const;
 

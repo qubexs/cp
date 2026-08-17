@@ -22,7 +22,7 @@ export interface ScanConfig {
   system: string;
 }
 
-const PRODUCTION_GUARD =
+export const PRODUCTION_GUARD =
   SCALE_LOCK_DIRECTIVE +
   "\n\n" +
   CONTINUITY_DIRECTIVE +

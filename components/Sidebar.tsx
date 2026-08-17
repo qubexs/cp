@@ -3,10 +3,23 @@
 import type { Account } from "@/lib/auth";
 import { SCAN_ORDER, SCANS, type ScanId } from "@/lib/scan";
 
-export type ToolId = "forge" | ScanId;
+export type ToolId = "forge" | "stage" | "stagevideo" | "filmset" | ScanId;
 
 export const MENU: { id: ToolId; icon: string; label: string; blurb: string }[] = [
   { id: "forge", icon: "⚡", label: "Prompt Forge", blurb: "Reference → generation prompt" },
+  { id: "stage", icon: "🎬", label: "Scene Stage", blurb: "Per-project storyboard rows" },
+  {
+    id: "stagevideo",
+    icon: "📽️",
+    label: "Scene Video Stage",
+    blurb: "Transition footage between scene stages",
+  },
+  {
+    id: "filmset",
+    icon: "🎥",
+    label: "Filming Set 3D",
+    blurb: "Dress a 3D set with props + virtual camera",
+  },
   ...SCAN_ORDER.map((scanId) => ({
     id: scanId as ToolId,
     icon: SCANS[scanId].icon,

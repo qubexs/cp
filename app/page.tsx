@@ -5,6 +5,9 @@ import AuthScreen from "@/components/AuthScreen";
 import KeyManager from "@/components/KeyManager";
 import Sidebar, { type ToolId } from "@/components/Sidebar";
 import PromptForge from "@/components/tools/PromptForge";
+import SceneStage from "@/components/tools/SceneStage";
+import SceneVideoStage from "@/components/tools/SceneVideoStage";
+import FilmingSet from "@/components/tools/FilmingSet";
 import ScanTool from "@/components/tools/ScanTool";
 import {
   addKey,
@@ -146,12 +149,18 @@ export default function Home() {
       </header>
 
       <main
-        className={`relative mx-auto w-full max-w-4xl px-4 pb-16 pt-6 transition-[padding] duration-300 ${
+        className={`relative mx-auto w-full px-4 pb-16 pt-6 transition-[padding] duration-300 ${
           sidebarOpen ? "lg:pl-64" : ""
-        }`}
+        } ${activeTool === "filmset" ? "max-w-[1900px]" : "max-w-4xl"}`}
       >
         {activeTool === "forge" ? (
           <PromptForge account={account} refreshAccount={refreshAccount} openKeys={openKeys} />
+        ) : activeTool === "stage" ? (
+          <SceneStage account={account} refreshAccount={refreshAccount} openKeys={openKeys} />
+        ) : activeTool === "stagevideo" ? (
+          <SceneVideoStage account={account} refreshAccount={refreshAccount} openKeys={openKeys} />
+        ) : activeTool === "filmset" ? (
+          <FilmingSet account={account} refreshAccount={refreshAccount} openKeys={openKeys} />
         ) : (
           <ScanTool
             account={account}
@@ -162,7 +171,7 @@ export default function Home() {
         )}
 
         <footer className="pt-8 text-center text-[11px] text-zinc-600">
-          Prompt Forge · production toolkit · all analysis runs through your own OpenRouter keys · no
+          Prompt Forge · production toolkit · all analysis runs through your own API keys · no
           images or videos are generated
         </footer>
       </main>
@@ -170,9 +179,9 @@ export default function Home() {
       {keysModalOpen && (
         <KeyManager
           account={account}
-          onAdd={(key, label) => {
+          onAdd={(key, label, provider) => {
             try {
-              addKey(account.email, key, label);
+              addKey(account.email, key, label, provider);
               refreshAccount();
               return null;
             } catch (e) {

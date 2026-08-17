@@ -1,7 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import type { ChatResult } from "@/lib/types";
+import type { ChatResult, Provider } from "@/lib/types";
+
+const PROVIDER_LABELS: Record<Provider, string> = {
+  openrouter: "OpenRouter",
+  google: "Google",
+  huggingface: "Hugging Face",
+};
 
 export default function ReportPanel({
   result,
@@ -43,7 +49,7 @@ export default function ReportPanel({
         <div>
           <h2 className="text-sm font-semibold text-zinc-100">{title}</h2>
           <p className="text-[11px] text-zinc-500">
-            via {result.model}
+            via {PROVIDER_LABELS[result.provider ?? "openrouter"]} · {result.model}
             {result.usedKey ? ` · key: ${result.usedKey}` : ""}
             {result.usage
               ? ` · ${result.usage.prompt_tokens + result.usage.completion_tokens} tokens`
