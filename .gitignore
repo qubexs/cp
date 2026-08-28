@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# cinematic standalone
+Cinematic/node_modules
+Cinematic/.next
+Cinematic/out
+Cinematic.zip

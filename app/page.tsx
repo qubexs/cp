@@ -8,6 +8,7 @@ import PromptForge from "@/components/tools/PromptForge";
 import SceneStage from "@/components/tools/SceneStage";
 import SceneVideoStage from "@/components/tools/SceneVideoStage";
 import FilmingSet from "@/components/tools/FilmingSet";
+import CinematicBuilder from "@/components/tools/CinematicBuilder";
 import ScanTool from "@/components/tools/ScanTool";
 import {
   addKey,
@@ -155,6 +156,8 @@ export default function Home() {
       >
         {activeTool === "forge" ? (
           <PromptForge account={account} refreshAccount={refreshAccount} openKeys={openKeys} />
+        ) : activeTool === "cinematic" ? (
+          <CinematicBuilder account={account} refreshAccount={refreshAccount} openKeys={openKeys} />
         ) : activeTool === "stage" ? (
           <SceneStage account={account} refreshAccount={refreshAccount} openKeys={openKeys} />
         ) : activeTool === "stagevideo" ? (
@@ -182,7 +185,9 @@ export default function Home() {
           onAdd={(key, label, provider) => {
             try {
               addKey(account.email, key, label, provider);
-              refreshAccount();
+              const fresh = getAccount(account.email);
+              if (fresh) setAccount(fresh);
+              else refreshAccount();
               return null;
             } catch (e) {
               return e instanceof Error ? e.message : "Could not add key.";
@@ -190,11 +195,15 @@ export default function Home() {
           }}
           onRemove={(keyId) => {
             removeKey(account.email, keyId);
-            refreshAccount();
+            const fresh = getAccount(account.email);
+            if (fresh) setAccount(fresh);
+            else refreshAccount();
           }}
           onToggle={(keyId, enabled) => {
             setKeyEnabled(account.email, keyId, enabled);
-            refreshAccount();
+            const fresh = getAccount(account.email);
+            if (fresh) setAccount(fresh);
+            else refreshAccount();
           }}
           onClose={() => setKeysModalOpen(false)}
         />
