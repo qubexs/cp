@@ -2,7 +2,7 @@
 
 > **Turbopack Next.js 16.3.1** • **Your API keys only** • Forge locked, production-ready prompts for **Veo 3 / Kling / Wan / Luma / Runway** (video) and **Flux / SDXL / Midjourney / Nano Banana** (image) — no video/image is generated, only the prompt.
 
-Example output (A Giant Bean Tree) matches your locked template — works in both `D:\JOHAR\prompt-forge\` and `D:\JOHAR\prompt-forge\Cinematic\`:
+Example output (A Giant Bean Tree) matches your locked template — works in both `D:\user\prompt-forge\` and `D:\user\prompt-forge\Cinematic\`:
 ```
 [Style & Visuals] Pixar-inspired high-end cinematic 3D animation, ultra-detailed quality, physically accurate lighting, fluid natural motion, realistic spatial depth, and polished cinematic rendering.
 LOCKED CHARACTER IDENTITY: Lila_LP = Lila 0.95, Milo = Milo 0.95, Grandpa_LP = Grandpa 0.95. Maintain 100% facial identity ...
