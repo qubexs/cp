@@ -1,0 +1,7 @@
+{
+  "backend": "docker",
+  "databaseUrl": "postgresql://promptforge:promptforge_local_pw@localhost:5432/promptforge?schema=public",
+  "dbProvider": "postgresql",
+  "installedAt": null,
+  "prismaVersion": "6.0.0"
+}

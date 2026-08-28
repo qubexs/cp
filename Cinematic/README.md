@@ -72,12 +72,67 @@ npm run lint
 - `run-cinematic.bat` — starts standalone Cinematic Lab from root
 - `Cinematic\run.bat` — starts standalone when you are inside `Cinematic\`
 - `runserver.bat` — alias for `npm run dev`
+- `install.bat` — **choose DB backend + migrate** (same PC, see below)
+- `start-db.bat` / `stop-db.bat` — start/stop Postgres container
 
 ---
 
-## API Keys — Your Keys, No Backend
+## PostgreSQL — Same PC (Not Cloud) — Install Choice + Migrate
 
-All calls go **directly from your browser to the provider** — keys are stored in `localStorage` under `promptforge_accounts`, never on a server. Rotation + auto-failover if one key fails.
+**All data stays on this PC. No cloud. Docker, Native, or Node-only.**
+
+### Install — choose backend (first run)
+
+Double-click **`install.bat`** (or `npm run db:migrate` manually). If no `.env` found → choice menu:
+
+```
+Choose backend:
+  1) Docker Postgres (needs Docker Desktop)  [Recommended]
+  2) Native Postgres (needs postgresql.org installer)
+  3) Node.js-only PGlite/SQLite (no server, file dev.db) [Zero deps]
+```
+
+- **1 Docker:** creates `docker-compose.yml` (`postgres:16-alpine`, volume `pgdata` at project root, `promptforge/promptforge_local_pw@localhost:5432/promptforge`), `docker compose up -d`, writes `.env` + `Cinematic/.env` + `.install-state.json`, then `npx prisma generate && npx prisma migrate dev --name init && npm run build && npm run dev`
+- **2 Native:** checks `psql --version`, if missing opens https://www.postgresql.org/download/windows/, creates DB `promptforge`, same `.env` as Docker, then `prisma migrate dev`
+- **3 Node:** sets `DATABASE_URL=file:./dev.db` (`DB_PROVIDER=sqlite`), no Docker/service, just `prisma migrate dev` — single file `dev.db` at project root
+
+All paths share same `.env` (`DATABASE_URL`, `ENCRYPTION_KEY`, `SESSION_SECRET`) and both apps (`root` + `Cinematic\`) use it.
+
+### If already installed — re-run `install.bat`
+
+Detects existing `.env` + `.install-state.json`:
+
+```
+Found: backend=docker, DB=promptforge
+  1) Migrate DB (keep data, prisma migrate deploy)
+  2) Re-configure backend (switch docker↔native↔node, with export/import)
+  3) Fresh reset (DROP DATA)
+  4) Just start (docker compose up + npm run dev)
+```
+
+- **Migrate** keeps users/keys, runs `prisma migrate deploy` + `prisma generate`
+- **Re-configure** auto-exports `User`/`StoredKey` (encrypted) from old DB, switches `DATABASE_URL`/`DB_PROVIDER`, imports to new DB (backup `pgdata.backup.2025-08-28`)
+- **LocalStorage import:** on first login, if `promptforge_accounts` in `localStorage` has keys but DB has 0 keys, browser auto `POST /api/auth/migrate` imports them then clears local
+
+### Verify
+
+```bash
+# Docker
+docker compose up -d && docker ps | findstr promptforge-db
+npx prisma studio        # view User / StoredKey (keyEncrypted)
+# Native
+psql "postgresql://promptforge:promptforge_local_pw@localhost:5432/promptforge" -c "\dt"
+# Node
+dir dev.db
+```
+
+Both `npm run build` (root + `Cinematic`) must pass — they do (see `prisma/schema.prisma` with `User`, `StoredKey`, `Session`).
+
+---
+
+## API Keys — Your Keys, Postgres Encrypted (Same PC)
+
+Keys are **encrypted (AES-256-GCM, `ENCRYPTION_KEY`) in Postgres on this PC** (`StoredKey.keyEncrypted`), never in cloud. Rotation + auto-failover if one key fails. Calls go via **server proxy** `POST /api/chat` (decrypts on server, never exposes plain key to browser) or fallback to direct browser → provider if DB offline. Legacy `localStorage` (`promptforge_accounts`) is kept as fallback + auto-migrated to Postgres on first login.
 
 1. **Sign up / Login** (local account, stored in browser) → header shows `Keys 0/0`
 2. **Manage Keys** → `Keys` button or `Key Manager` → Add:
@@ -158,7 +213,8 @@ Cinematic/   — standalone copy (same engine, isolated lockfile, turbopack.root
 ## Tech
 
 - Next.js 16.3.1 (App Router, Turbopack), React 19, Tailwind 4, TypeScript 5
-- Client-side only — `openrouter.ts` → `providers.ts` → `fetch` with `AbortController` (300s), no API routes
-- Auth: `localStorage` (`promptforge_accounts`, `promptforge_session`), SHA-256
+- **Postgres same PC**: `prisma` (User/StoredKey/Session), `docker-compose.yml` (postgres:16-alpine), `lib/db.ts` singleton, `lib/crypto.ts` AES-256-GCM, `lib/session.ts` jose JWT httpOnly, `app/api/auth/*`, `app/api/keys/*`, `app/api/chat/*`
+- Fallback still works: `lib/auth.ts` hybrid → tries `/api/*` (Postgres), falls back to `localStorage` (`promptforge_accounts`, SHA-256) + `install.bat` migrate
+- AI: `openrouter.ts` → `providers.ts` → `fetch` with `AbortController` (300s), now proxied via `POST /api/chat` when DB available
 
 MIT — your keys, your prompts.

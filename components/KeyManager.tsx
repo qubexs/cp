@@ -18,7 +18,7 @@ export default function KeyManager({
   onClose,
 }: {
   account: Account;
-  onAdd: (key: string, label: string, provider: Provider) => string | null;
+  onAdd: (key: string, label: string, provider: Provider) => string | null | Promise<string | null>;
   onRemove: (keyId: string) => void;
   onToggle: (keyId: string, enabled: boolean) => void;
   onClose: () => void;
@@ -34,14 +34,14 @@ export default function KeyManager({
 
   const providerConfig = PROVIDERS.find((p) => p.id === provider) ?? PROVIDERS[0];
 
-  const add = () => {
+  const add = async () => {
     setFeedback(null);
     if (!newKey.trim()) {
       setFeedback(`Paste a ${providerConfig.short} API key first.`);
       setFeedbackOk(false);
       return;
     }
-    const err = onAdd(newKey.trim(), newLabel.trim(), provider);
+    const err = await onAdd(newKey.trim(), newLabel.trim(), provider);
     if (err) {
       setFeedback(err);
       setFeedbackOk(false);

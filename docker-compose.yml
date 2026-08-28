@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: promptforge-db
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: promptforge
+      POSTGRES_USER: promptforge
+      POSTGRES_PASSWORD: promptforge_local_pw
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+volumes:
+  pgdata:

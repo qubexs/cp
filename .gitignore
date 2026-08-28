@@ -31,7 +31,12 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # env files (can opt-in for committing if needed)
-.env*
+.env
+.env.local
+.env.development.local
+.env.production.local
+!.env.example
+!Cinematic/.env.example
 
 # vercel
 .vercel
@@ -45,3 +50,10 @@ Cinematic/node_modules
 Cinematic/.next
 Cinematic/out
 Cinematic.zip
+# local db
+dev.db
+dev.db-journal
+pglite.data
+pgdata
+.install-state.json
+!.install-state.json.example
