@@ -23,8 +23,8 @@ NEGATIVE PROMPT: hand swapping, bag transfer, face drift, morphing ...
 
 | App | Folder | Run | URL |
 |-----|--------|-----|-----|
-| **Prompt Forge** (full toolkit: Forge + Cinematic Lab + Scene Stage + 3D Set) | `D:\JOHAR\prompt-forge\` (root) | `run-prompt-forge.bat` | http://localhost:3000 |
-| **Cinematic Prompt Lab — Standalone** (only Cinematic Lab) | `D:\JOHAR\prompt-forge\Cinematic\` | `Cinematic\run.bat` | http://localhost:3000 |
+| **Prompt Forge** (full toolkit: Forge + Cinematic Lab + Scene Stage + 3D Set) | `D:\user\prompt-forge\` (root) | `run-prompt-forge.bat` | http://localhost:3000 |
+| **Cinematic Prompt Lab — Standalone** (only Cinematic Lab) | `D:\user\prompt-forge\Cinematic\` | `Cinematic\run.bat` | http://localhost:3000 |
 
 Both are **Turbopack** (`next dev --turbopack`) and share the same `lib/cinematic.ts` engine.
 
