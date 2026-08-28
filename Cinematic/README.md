@@ -2,19 +2,19 @@
 
 > **Turbopack Next.js 16.3.1** • **Your API keys only** • Forge locked, production-ready prompts for **Veo 3 / Kling / Wan / Luma / Runway** (video) and **Flux / SDXL / Midjourney / Nano Banana** (image) — no video/image is generated, only the prompt.
 
-Example output (kampung keropok lekor) matches your locked template:
+Example output (A Giant Bean Tree) matches your locked template — works in both `D:\JOHAR\prompt-forge\` and `D:\JOHAR\prompt-forge\Cinematic\`:
 ```
-[Style & Visuals] Pixar-inspired ...
-LOCKED CHARACTER IDENTITY: Atuk_LP = Atuk 0.95 ...
-SCENE: lively Malaysian kampung market ... elderly_man_tomato_bag_1.webp influence 0.9
-SEED: 12345 locked. DURATION: 8s  MOTION STRENGTH: 0.3
-CAMERA: wide establishing shot ...
-CHARACTER SPATIAL ORDER LOCKED FROM LEFT TO RIGHT: [Atuk] - [Atan] - [Acik] - [Stall]
-CRITICAL PROP LOCK: Atuk holds ONE orange translucent bag in ANATOMICAL RIGHT HAND ...
-ACTION: group walks ...
-DIALOGUE: Acik says "Sedapnya..." ...
-CONTINUITY LOCK: single shot, zero cuts ...
-NEGATIVE PROMPT: hand swapping, bag transfer, face drift ...
+[Style & Visuals] Pixar-inspired high-end cinematic 3D animation, ultra-detailed quality, physically accurate lighting, fluid natural motion, realistic spatial depth, and polished cinematic rendering.
+LOCKED CHARACTER IDENTITY: Lila_LP = Lila 0.95, Milo = Milo 0.95, Grandpa_LP = Grandpa 0.95. Maintain 100% facial identity ...
+SCENE: colossal bean tree bursting through a sunny village square, trunk twisting into the clouds, shimmering leaves, villagers gathered around ... Scene reference giant_bean_tree_01.webp influence 0.9
+SEED: 77777 locked. DURATION: 8s  MOTION STRENGTH: 0.3
+CAMERA: wide establishing shot, eye-level, slow tracking toward the tree ...
+CHARACTER SPATIAL ORDER LOCKED FROM LEFT TO RIGHT: [Grandpa] - [Lila] - [Milo] - [Bean Tree + Villagers]
+CRITICAL PROP LOCK: Grandpa holds ONE small woven basket with a glowing bean exclusively in his ANATOMICAL RIGHT HAND ...
+ACTION: trio walks slowly toward the giant tree, looking up in awe ...
+DIALOGUE: Lila says "Wow, it touches the sky..."  Grandpa says "We grew this from one brave seed."  Milo says "Can we climb to the clouds?"
+CONTINUITY LOCK: single shot, zero cuts, zero teleportation ...
+NEGATIVE PROMPT: hand swapping, bag transfer, face drift, morphing ...
 ```
 
 ---
@@ -112,8 +112,8 @@ Builder fields auto-hide for Image (no Seed/Duration/Motion/Dialogue/Continuity)
 ### C. AI Forge (with reference files)
 
 1. Pick tab (Image/Video), type **Scene Idea** in plain language:
-   - Video example: `Atuk, Atan, Acik walk to keropok lekor stall. Atuk holds orange bag in RIGHT hand. Spatial order Atuk-Atan-Acik-stall. Dialogue: ...`
-   - Image example: `Atuk, Atan, Acik at pasar, Atuk holds orange bag in RIGHT hand, order Atuk-Atan-Acik-stall, warm pose`
+   - Video example: `Grandpa, Lila and Milo walk to the Giant Bean Tree in the village square. Grandpa holds glowing bean basket in RIGHT hand. Spatial order Grandpa-Lila-Milo-Tree. Dialogue: Lila "Wow, it touches the sky..." Grandpa "We grew this from one brave seed."`
+   - Image example: `Grandpa, Lila, Milo at Giant Bean Tree, Grandpa holds glowing bean basket in RIGHT hand, order Grandpa-Lila-Milo-Tree, warm awe pose, eye-level 50mm`
 2. **Drop reference files** (or `Browse`) — images/video/scripts are read via `readAttachment` and sent as `image_url`/`video_url` to the model (40MB limit)
 3. Pick **Model**: `Gemini 2.5 Flash` (best price/perf, video+image), `2.5 Pro`, `Qwen2.5-VL`, `GPT-4o` etc
 4. Click **✨ AI Forge Image Prompt** or **🎬 AI Forge Video Prompt** → streams via your keys
@@ -121,11 +121,11 @@ Builder fields auto-hide for Image (no Seed/Duration/Motion/Dialogue/Continuity)
 
 ### D. Manual Builder (fine-tune hints)
 
-- **Locked Character Identity**: `Name | Code | Weight | Description` → outputs `Atuk_LP = Atuk 0.95, ...`
-- **Scene + Reference**: upload image/video or type filename `elderly_man_tomato_bag_1.webp` + `influence 0.9`
+- **Locked Character Identity**: `Name | Code | Weight | Description` → outputs `Lila_LP = Lila 0.95, Grandpa_LP = Grandpa 0.95 ...`
+- **Scene + Reference**: upload image/video or type filename `giant_bean_tree_01.webp` + `influence 0.9`
 - **Camera, Spatial Order, Prop Lock, Action, Dialogue (+ Line), Performance, Continuity, Negative**
 - Builder state feeds AI as `BUILDER HINTS` if your idea is vague
-- Blank vs Kampung Example loader, word/char count
+- Blank vs Giant Bean Tree Example loader, word/char count
 
 ### E. Ready Prompt
 
