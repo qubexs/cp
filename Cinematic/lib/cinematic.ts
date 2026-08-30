@@ -32,6 +32,18 @@ export const STYLE_PRESETS: { id: string; label: string; value: string }[] = [
   { id: "comic", label: "Comic Cel-Shaded", value: "Comic cel-shaded style, bold outlines, flat colors, graphic shading" },
 ];
 
+export const ENV_DEFAULT = `Time: Morning/Afternoon — bright blue sky with white clouds. Color temperature: Cool — cool daylight, white-blue, neutral 5500K-6500K. Shadows: Short and sharp, sun from above, all faces evenly lit, low contrast. Vibe: Cheerful, bright, bustling — cool morning.`;
+export interface EnvPreset { id: string; label: string; timeOfDay: string; colorTemp: string; shadows: string; vibe: string; }
+export const ENV_PRESETS: EnvPreset[] = [
+  { id: "cool_morning", label: "Cool Morning — Cool", timeOfDay: "Morning/Afternoon — bright blue sky with white clouds", colorTemp: "Cool — cool daylight, white-blue, neutral 5500K-6500K", shadows: "Short and sharp, sun from above, all faces evenly lit, low contrast", vibe: "Cheerful, bright, bustling — cool morning" },
+  { id: "golden_hour", label: "Golden Hour — Warm Sunset", timeOfDay: "Late Afternoon — golden sky, warm orange-pink clouds", colorTemp: "Warm — golden hour 3200K-4500K, amber glow", shadows: "Long soft shadows, sun low from side, warm rim light on faces", vibe: "Nostalgic, warm, cinematic — village sunset" },
+  { id: "overcast_soft", label: "Overcast — Soft Neutral", timeOfDay: "Midday — overcast, soft diffused sky", colorTemp: "Neutral — soft daylight 5000K-5500K, gentle", shadows: "Very soft diffused shadows, even lighting, no harsh contrast", vibe: "Calm, muted, documentary — cloudy day" },
+  { id: "night_neon", label: "Night — Neon Bustle", timeOfDay: "Night — dark sky with neon signs and street lamps", colorTemp: "Mixed — cool neon + warm tungsten 3500K-6500K", shadows: "Sharp neon shadows, high contrast, rim lights from stalls", vibe: "Vibrant, energetic, cyberpunk — night market" },
+  { id: "dawn_mist", label: "Dawn — Misty Cool", timeOfDay: "Early Morning — pale blue sky, light mist", colorTemp: "Cool — soft dawn 6000K-7500K, bluish haze", shadows: "Almost no shadows, fog-diffused, faces softly lit", vibe: "Dreamy, quiet, ethereal — misty kampung dawn" },
+  { id: "midday_harsh", label: "Midday — Harsh Sun", timeOfDay: "Noon — bright harsh sun directly overhead", colorTemp: "Cool — harsh daylight 6500K+, high contrast", shadows: "Very short, hard-edged shadows directly below", vibe: "Intense, glaring, high-energy — peak sun" },
+  { id: "evening_lantern", label: "Evening — Lantern Warm", timeOfDay: "Evening — warm lantern light, dusky sky", colorTemp: "Warm — lantern tungsten 2700K-3500K, cozy", shadows: "Soft warm shadows, lantern glow on faces", vibe: "Cozy, intimate, festive — evening stalls" },
+  { id: "custom", label: "Custom — Manual Entry", timeOfDay: "", colorTemp: "", shadows: "", vibe: "" },
+];
 export interface CinematicState {
   styleVisuals: string[];
   characters: CinematicCharacter[];
@@ -50,6 +62,10 @@ export interface CinematicState {
   performance: string;
   continuity: string;
   negativePrompt: string;
+  timeOfDay: string;
+  colorTemp: string;
+  shadows: string;
+  vibe: string;
 }
 
 export const DEFAULT_NEGATIVE =
@@ -89,6 +105,10 @@ export const DEFAULT_STATE: CinematicState = {
   continuity:
     "continuous single shot, zero cuts, zero teleportation, zero sudden repositioning, zero character overtaking, zero side swapping, zero scale changes, zero perspective changes, zero clothing changes, zero facial changes, zero prop duplication, zero prop disappearance.",
   negativePrompt: DEFAULT_NEGATIVE,
+  timeOfDay: "Morning/Afternoon — bright blue sky with white clouds",
+  colorTemp: "Cool — cool daylight, white-blue, neutral 5500K-6500K",
+  shadows: "Short and sharp, sun from above, all faces evenly lit, low contrast",
+  vibe: "Cheerful, bright, bustling — cool morning",
 };
 
 export type CinematicMode = "image" | "video";
@@ -113,11 +133,18 @@ CRITICAL PROP LOCK: Atuk holds ONE orange translucent plastic shopping bag exclu
 
 PERFORMANCE / POSE: natural Malaysian family interaction, warm expressions, subtle smiles, looking toward keropok...
 
+ENVIRONMENT (LOCKED):
+Time: Morning/Afternoon — bright blue sky with white clouds.
+Color temperature: Cool — cool daylight, white-blue, neutral 5500K-6500K.
+Shadows: Short and sharp, sun from above, all faces evenly lit, low contrast.
+Vibe: Cheerful, bright, bustling — cool morning.
+
 NEGATIVE PROMPT: hand swapping, bag transfer, duplicated bag, face drift, morphing, extra fingers, extra limbs, duplicate characters, watermark, blur, distorted anatomy...
 
 RULES:
 - Output ONLY the final prompt. No preamble, no fences, no explanation.
-- ALWAYS include: [Style & Visuals], LOCKED CHARACTER IDENTITY, SCENE (+ reference if provided), CAMERA, CHARACTER SPATIAL ORDER LOCKED, CRITICAL PROP LOCK, PERFORMANCE / POSE, NEGATIVE PROMPT.
+- ALWAYS include: [Style & Visuals], LOCKED CHARACTER IDENTITY, SCENE (+ reference if provided), CAMERA, CHARACTER SPATIAL ORDER LOCKED, CRITICAL PROP LOCK, PERFORMANCE / POSE, ENVIRONMENT (Time/Color temperature/Shadows/Vibe as above), NEGATIVE PROMPT.
+- ENVIRONMENT must be exactly: Time Morning/Afternoon bright blue sky white clouds, Color temperature Cool 5500K-6500K, Shadows short sharp sun from above faces evenly lit low contrast, Vibe cheerful bright bustling cool morning. Never omit or alter.
 - Identity format: CODE = Name weight (e.g. Atuk_LP = Atuk 0.95)
 - Lock spatial order left-to-right, no swapping.
 - Lock prop to anatomical hand RIGHT/LEFT, never transfer/duplicate.
@@ -155,11 +182,18 @@ PERFORMANCE: natural Malaysian family interaction...
 
 CONTINUITY LOCK: continuous single shot, zero cuts, zero teleportation...
 
+ENVIRONMENT (LOCKED):
+Time: Morning/Afternoon — bright blue sky with white clouds.
+Color temperature: Cool — cool daylight, white-blue, neutral 5500K-6500K.
+Shadows: Short and sharp, sun from above, all faces evenly lit, low contrast.
+Vibe: Cheerful, bright, bustling — cool morning.
+
 NEGATIVE PROMPT: hand swapping, bag transfer, duplicated bag, face drift, identity drift...
 
 RULES:
 - Output ONLY the final prompt. No preamble, no markdown fences, no explanation.
-- ALWAYS include every block: [Style & Visuals], LOCKED CHARACTER IDENTITY, SCENE, SEED, DURATION, MOTION STRENGTH, CAMERA, CHARACTER SPATIAL ORDER LOCKED, CRITICAL PROP LOCK (if any prop mentioned), ACTION, DIALOGUE AND PERFORMANCE, PERFORMANCE, CONTINUITY LOCK, NEGATIVE PROMPT.
+- ALWAYS include every block: [Style & Visuals], LOCKED CHARACTER IDENTITY, SCENE, SEED, DURATION, MOTION STRENGTH, CAMERA, CHARACTER SPATIAL ORDER LOCKED, CRITICAL PROP LOCK (if any prop mentioned), ACTION, DIALOGUE AND PERFORMANCE, PERFORMANCE, CONTINUITY LOCK, ENVIRONMENT (Time/Color temperature/Shadows/Vibe as locked above), NEGATIVE PROMPT.
+- ENVIRONMENT must be exactly: Time Morning/Afternoon bright blue sky white clouds, Color temperature Cool 5500K-6500K, Shadows short sharp sun from above faces evenly lit low contrast, Vibe cheerful bright bustling cool morning. Never omit or alter.
 - For LOCKED CHARACTER IDENTITY use format: CODE = Name weight (e.g. Atuk_LP = Atuk 0.95). Infer weight 0.95 unless specified.
 - Lock spatial order left-to-right explicitly. Prevent overtaking/crossing/swapping.
 - Lock props to anatomical hand (RIGHT or LEFT). State continuously locked, never transfer/duplicate/disappear.
@@ -186,6 +220,7 @@ export function buildCinematicUserPrompt(sceneIdea: string, stateHint: Partial<C
   if (stateHint.propLock) hintLines.push(`Prop lock hint: ${stateHint.propLock}`);
   if (stateHint.duration) hintLines.push(`Duration hint: ${stateHint.duration}s`);
   if (stateHint.seed) hintLines.push(`Seed hint: ${stateHint.seed}`);
+  hintLines.push(`ENVIRONMENT LOCKED: Time=${stateHint.timeOfDay ?? "Morning/Afternoon — bright blue sky with white clouds"} | ColorTemp=${stateHint.colorTemp ?? "Cool 5500K-6500K"} | Shadows=${stateHint.shadows ?? "Short sharp sun from above faces evenly lit"} | Vibe=${stateHint.vibe ?? "Cheerful bright bustling cool morning"}`);
   const ref = fileCount.image || fileCount.video ? `Attached references: ${fileCount.image} image(s), ${fileCount.video} video(s) — analyze visually and lock environment/composition.` : "No reference files attached — invent plausible cinematic details but keep locks strict.";
   return [
     `SCENE IDEA FROM USER (expand into full locked prompt, honor every detail):`,
@@ -195,7 +230,7 @@ export function buildCinematicUserPrompt(sceneIdea: string, stateHint: Partial<C
     "",
     ref,
     "",
-    `OUTPUT: Return ONLY the ready-to-paste cinematic prompt with all locks. No explanation.`,
+    `OUTPUT: Return ONLY the ready-to-paste cinematic prompt with all locks including ENVIRONMENT (Time/Color temp/Shadows/Vibe). No explanation.`,
   ].join("\n");
 }
 
@@ -218,6 +253,8 @@ export function buildCinematicImagePrompt(s: CinematicState): string {
   if (s.propLock.trim()) { lines.push(`CRITICAL PROP LOCK: ${s.propLock.trim()}`); lines.push(""); }
   if (s.performance.trim()) { lines.push(`PERFORMANCE / POSE: ${s.performance.trim()}`); lines.push(""); }
   if (s.action.trim()) { lines.push(`ACTION (POSE): ${s.action.trim()}`); lines.push(""); }
+  lines.push(`ENVIRONMENT (LOCKED): Time: ${s.timeOfDay || "Morning/Afternoon — bright blue sky with white clouds"} | Color temperature: ${s.colorTemp || "Cool — cool daylight, white-blue, neutral 5500K-6500K"} | Shadows: ${s.shadows || "Short and sharp, sun from above, all faces evenly lit, low contrast"} | Vibe: ${s.vibe || "Cheerful, bright, bustling — cool morning"}`);
+  lines.push("");
   if (s.negativePrompt.trim()) lines.push(`NEGATIVE PROMPT: ${s.negativePrompt.trim()}`);
   return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
 }
@@ -257,6 +294,8 @@ export function buildCinematicPrompt(s: CinematicState): string {
   if (dialogueBlock) { lines.push(`DIALOGUE AND PERFORMANCE: ${dialogueBlock}`); lines.push(""); }
   if (s.performance.trim()) { lines.push(`PERFORMANCE: ${s.performance.trim()}`); lines.push(""); }
   if (s.continuity.trim()) { lines.push(`CONTINUITY LOCK: ${s.continuity.trim()}`); lines.push(""); }
+  lines.push(`ENVIRONMENT (LOCKED): Time: ${s.timeOfDay || "Morning/Afternoon — bright blue sky with white clouds"} | Color temperature: ${s.colorTemp || "Cool — cool daylight, white-blue, neutral 5500K-6500K"} | Shadows: ${s.shadows || "Short and sharp, sun from above, all faces evenly lit, low contrast"} | Vibe: ${s.vibe || "Cheerful, bright, bustling — cool morning"}`);
+  lines.push("");
   if (s.negativePrompt.trim()) lines.push(`NEGATIVE PROMPT: ${s.negativePrompt.trim()}`);
   return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
 }

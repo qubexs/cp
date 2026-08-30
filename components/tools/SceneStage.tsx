@@ -1,11 +1,11 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ProjectBar from "@/components/tools/ProjectBar";
 import ReportPanel from "@/components/ReportPanel";
 import {
   advanceRotation,
-  nextRotationOrder,
+  nextRotationOrderFromAccount,
   updateKeyStatus,
   type Account,
 } from "@/lib/auth";
@@ -86,14 +86,19 @@ Output ONLY the report.`,
   },
 };
 
+type Incoming = { sceneText: string; cinematicState?: unknown; imagePrompt?: string; videoPrompt?: string; sourceSceneId: string };
 export default function SceneStage({
   account,
   refreshAccount,
   openKeys,
+  incoming,
+  onConsumed,
 }: {
   account: Account;
   refreshAccount: () => void;
   openKeys: () => void;
+  incoming?: Incoming;
+  onConsumed?: () => void;
 }) {
   const {
     projects,
@@ -113,6 +118,13 @@ export default function SceneStage({
   const reportRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const scenes: ProjectScene[] = activeProject?.scenes ?? [];
+
+  useEffect(() => {
+    if (!incoming) return;
+    const prompt = incoming.sceneText || incoming.videoPrompt || incoming.imagePrompt || "";
+    setScenes((prev) => [...prev, { ...newSceneRow(), prompt }]);
+    onConsumed?.();
+  }, [incoming, onConsumed, setScenes]);
 
   const updateScene = (id: string, patch: Partial<ProjectScene>) =>
     setScenes((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
@@ -162,7 +174,7 @@ export default function SceneStage({
       return;
     }
 
-    const order = nextRotationOrder(account.email);
+    const order = nextRotationOrderFromAccount(account);
     if (order.length === 0) {
       setError("No enabled API keys. Add one in the Key Manager.");
       openKeys();
@@ -234,7 +246,7 @@ export default function SceneStage({
   const enabledCount = account.keys.filter((k) => k.enabled).length;
 
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-6 w-full max-w-none">
       <ProjectBar
         projects={projects}
         active={activeProject}

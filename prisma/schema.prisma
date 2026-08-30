@@ -3,18 +3,19 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
 model User {
-  id            String      @id @default(cuid())
-  email         String      @unique
-  passwordHash  String
-  rotationIndex Int         @default(0)
-  createdAt     DateTime    @default(now())
-  keys          StoredKey[]
-  sessions      Session[]
+  id                  String              @id @default(cuid())
+  email               String              @unique
+  passwordHash        String
+  rotationIndex       Int                 @default(0)
+  createdAt           DateTime            @default(now())
+  keys                StoredKey[]
+  sessions            Session[]
+  storyboardProjects StoryboardProject[]
 }
 
 model StoredKey {
@@ -43,4 +44,29 @@ model Session {
 
   @@index([userId])
   @@index([token])
+}
+
+model StoryboardProject {
+  id        String            @id @default(cuid())
+  userId    String
+  title     String
+  storyText String
+  createdAt DateTime          @default(now())
+  scenes    StoryboardScene[]
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId])
+}
+
+model StoryboardScene {
+  id             String            @id @default(cuid())
+  projectId      String
+  idx            Int
+  sceneText      String
+  cinematicState String?
+  imagePrompt    String?
+  videoPrompt    String?
+  imageRef       String?
+  createdAt      DateTime          @default(now())
+  project        StoryboardProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  @@index([projectId])
 }

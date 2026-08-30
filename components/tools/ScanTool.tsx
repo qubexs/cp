@@ -1,11 +1,11 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import AttachZone from "@/components/AttachZone";
 import ReportPanel from "@/components/ReportPanel";
 import {
   advanceRotation,
-  nextRotationOrder,
+  nextRotationOrderFromAccount,
   updateKeyStatus,
   type Account,
 } from "@/lib/auth";
@@ -18,16 +18,21 @@ import {
   type ModelChoice,
 } from "@/lib/types";
 
+type Incoming = { sceneText: string; cinematicState?: unknown; imagePrompt?: string; videoPrompt?: string; sourceSceneId: string };
 export default function ScanTool({
   account,
   config,
   refreshAccount,
   openKeys,
+  incoming,
+  onConsumed,
 }: {
   account: Account;
   config: ScanConfig;
   refreshAccount: () => void;
   openKeys: () => void;
+  incoming?: Incoming;
+  onConsumed?: () => void;
 }) {
   const [model, setModel] = useState<ModelChoice>("google/gemini-2.5-flash");
   const [attachments, setAttachments] = useState<Attachment[]>([]);
@@ -37,6 +42,12 @@ export default function ScanTool({
   const [error, setError] = useState<string | null>(null);
   const [pendingCount, setPendingCount] = useState(0);
   const resultRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!incoming) return;
+    setUserPrompt(incoming.sceneText || "");
+    onConsumed?.();
+  }, [incoming, onConsumed]);
 
   const addFiles = useCallback(async (files: File[]) => {
     if (!files.length) return;
@@ -67,7 +78,7 @@ export default function ScanTool({
       return;
     }
 
-    const order = nextRotationOrder(account.email);
+    const order = nextRotationOrderFromAccount(account);
     if (order.length === 0) {
       setError("No enabled API keys. Add one in the Key Manager.");
       openKeys();
@@ -109,7 +120,7 @@ export default function ScanTool({
   const canRun = !loading && attachments.length >= config.minRefs;
 
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-6 w-full max-w-none">
       <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5 shadow-xl shadow-black/30">
         <div className="flex items-start gap-3">
           <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-fuchsia-500/20 to-sky-500/10 text-xl ring-1 ring-fuchsia-500/40">

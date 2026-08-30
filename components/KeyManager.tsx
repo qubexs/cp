@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import {
-  enabledKeysCount,
+  enabledKeysCountFromAccount,
   maskKey,
-  nextRotationOrder,
+  nextRotationOrderFromAccount,
   type Account,
 } from "@/lib/auth";
 import { PROVIDERS } from "@/lib/providers";
@@ -29,8 +29,8 @@ export default function KeyManager({
   const [feedback, setFeedback] = useState<string | null>(null);
   const [feedbackOk, setFeedbackOk] = useState(false);
 
-  const enabledCount = enabledKeysCount(account.email);
-  const next = nextRotationOrder(account.email)[0];
+  const enabledCount = enabledKeysCountFromAccount(account);
+  const next = nextRotationOrderFromAccount(account)[0];
 
   const providerConfig = PROVIDERS.find((p) => p.id === provider) ?? PROVIDERS[0];
 

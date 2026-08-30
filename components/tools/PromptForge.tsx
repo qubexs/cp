@@ -6,7 +6,7 @@ import ResultPanel from "@/components/ResultPanel";
 import {
   advanceRotation,
   maskKey,
-  nextRotationOrder,
+  nextRotationOrderFromAccount,
   updateKeyStatus,
   type Account,
 } from "@/lib/auth";
@@ -44,14 +44,19 @@ const FEATURE_BADGES: Record<OutputTarget, string[]> = {
   video: ["Master", "Shot-by-shot", "Motion", "Continuity"],
 };
 
+type Incoming = { sceneText: string; cinematicState?: unknown; imagePrompt?: string; videoPrompt?: string; sourceSceneId: string };
 export default function PromptForge({
   account,
   refreshAccount,
   openKeys,
+  incoming,
+  onConsumed,
 }: {
   account: Account;
   refreshAccount: () => void;
   openKeys: () => void;
+  incoming?: Incoming;
+  onConsumed?: () => void;
 }) {
   const [target, setTarget] = useState<OutputTarget>("image");
   const [model, setModel] = useState<ModelChoice>("google/gemini-2.5-flash");
@@ -85,7 +90,13 @@ export default function PromptForge({
     () => account.keys.filter((k) => k.enabled),
     [account]
   );
-  const nextKey = useMemo(() => nextRotationOrder(account.email)[0], [account]);
+  const nextKey = useMemo(() => nextRotationOrderFromAccount(account)[0], [account]);
+
+  useEffect(() => {
+    if (!incoming) return;
+    setSceneDirection(incoming.sceneText || incoming.imagePrompt || incoming.videoPrompt || "");
+    onConsumed?.();
+  }, [incoming, onConsumed]);
 
   useEffect(() => {
     try {
@@ -118,7 +129,7 @@ export default function PromptForge({
   const generate = useCallback(
     async (overTarget?: OutputTarget) => {
       const t = overTarget ?? target;
-      const order = nextRotationOrder(account.email);
+      const order = nextRotationOrderFromAccount(account);
       if (order.length === 0) {
         setError("No enabled API keys. Add one in the Key Manager.");
         openKeys();
@@ -167,7 +178,7 @@ export default function PromptForge({
     : result?.usedKey ?? undefined;
 
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-6 w-full max-w-none">
       <div className={`rounded-2xl border ${BORDER_COLORS[target]} bg-zinc-900/60 p-5 shadow-xl shadow-black/30`}>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">

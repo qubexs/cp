@@ -7,7 +7,7 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import ProjectBar from "@/components/tools/ProjectBar";
 import {
   advanceRotation,
-  nextRotationOrder,
+  nextRotationOrderFromAccount,
   updateKeyStatus,
   type Account,
 } from "@/lib/auth";
@@ -611,14 +611,19 @@ function parseEnvJSON(
   };
 }
 
+type Incoming = { sceneText: string; cinematicState?: unknown; imagePrompt?: string; videoPrompt?: string; sourceSceneId: string };
 export default function FilmingSet({
   account,
   refreshAccount,
   openKeys,
+  incoming,
+  onConsumed,
 }: {
   account: Account;
   refreshAccount: () => void;
   openKeys: () => void;
+  incoming?: Incoming;
+  onConsumed?: () => void;
 }) {
   const { sets, activeSet, selectSet, createSet, renameSet, deleteSet, updateSet } =
     useFilmingSets(account.email);
@@ -636,6 +641,12 @@ export default function FilmingSet({
   const [envModel, setEnvModel] = useState<ModelChoice>("google/gemini-2.5-flash");
   const [envBusy, setEnvBusy] = useState(false);
   const [envMsg, setEnvMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  useEffect(() => {
+    if (!incoming) return;
+    setEnvPrompt(incoming.sceneText || incoming.imagePrompt || incoming.videoPrompt || "");
+    onConsumed?.();
+  }, [incoming, onConsumed]);
 
   const modeRef = useRef({ cameraView });
   const selected = activeSet?.objects.find((o) => o.id === selectedId) ?? null;
@@ -1213,7 +1224,7 @@ export default function FilmingSet({
       return;
     }
 
-    const order = nextRotationOrder(account.email);
+    const order = nextRotationOrderFromAccount(account);
     if (order.length === 0) {
       setError("No enabled API keys. Add one in the Key Manager.");
       openKeys();
@@ -1294,7 +1305,7 @@ export default function FilmingSet({
   const enabledTotal = account.keys.filter((k) => k.enabled).length;
 
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-6 w-full max-w-none">
       <ProjectBar
         projects={sets}
         active={activeSet}

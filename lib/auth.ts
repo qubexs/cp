@@ -184,6 +184,15 @@ export function enabledKeysCount(email: string): number {
   if (!account) return 0;
   return account.keys.filter((k) => k.enabled).length;
 }
+export function nextRotationOrderFromAccount(account: Account): StoredKey[] {
+  const enabled = account.keys.filter((k) => k.enabled);
+  if (enabled.length === 0) return [];
+  const start = (account.rotationIndex ?? 0) % enabled.length;
+  return [...enabled.slice(start), ...enabled.slice(0, start)];
+}
+export function enabledKeysCountFromAccount(account: Account): number {
+  return account.keys.filter((k) => k.enabled).length;
+}
 export async function sha256Hex(text: string): Promise<string> {
   const data = new TextEncoder().encode(text);
   const buf = await crypto.subtle.digest("SHA-256", data);

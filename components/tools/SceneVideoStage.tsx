@@ -1,11 +1,11 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ProjectBar from "@/components/tools/ProjectBar";
 import ReportPanel from "@/components/ReportPanel";
 import {
   advanceRotation,
-  nextRotationOrder,
+  nextRotationOrderFromAccount,
   updateKeyStatus,
   type Account,
 } from "@/lib/auth";
@@ -98,14 +98,19 @@ function emptyVideo(key: string): ProjectVideo {
   return { key, prompt: "" };
 }
 
+type Incoming = { sceneText: string; cinematicState?: unknown; imagePrompt?: string; videoPrompt?: string; sourceSceneId: string };
 export default function SceneVideoStage({
   account,
   refreshAccount,
   openKeys,
+  incoming,
+  onConsumed,
 }: {
   account: Account;
   refreshAccount: () => void;
   openKeys: () => void;
+  incoming?: Incoming;
+  onConsumed?: () => void;
 }) {
   const {
     projects,
@@ -133,6 +138,21 @@ export default function SceneVideoStage({
 
   const effective = (pair: Pair): ProjectVideo =>
     videos.find((v) => v.key === pair.key) ?? emptyVideo(pair.key);
+
+  useEffect(() => {
+    if (!incoming) return;
+    const prompt = incoming.sceneText || incoming.videoPrompt || incoming.imagePrompt || "";
+    if (prompt) {
+      if (pairs.length > 0) {
+        const lastPair = pairs[pairs.length - 1];
+        setVideos((prev) => {
+          const exists = prev.some((v) => v.key === lastPair.key);
+          return exists ? prev.map((v) => (v.key === lastPair.key ? { ...v, prompt } : v)) : [...prev, { ...emptyVideo(lastPair.key), prompt }];
+        });
+      }
+    }
+    onConsumed?.();
+  }, [incoming, onConsumed, pairs, setVideos]);
 
   const updatePair = (pair: Pair, patch: Partial<ProjectVideo>) =>
     setVideos((prev) => {
@@ -166,7 +186,7 @@ export default function SceneVideoStage({
       return;
     }
 
-    const order = nextRotationOrder(account.email);
+    const order = nextRotationOrderFromAccount(account);
     if (order.length === 0) {
       setError("No enabled API keys. Add one in the Key Manager.");
       openKeys();
@@ -247,7 +267,7 @@ export default function SceneVideoStage({
   const enabledCount = account.keys.filter((k) => k.enabled).length;
 
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-6 w-full max-w-none">
       <ProjectBar
         projects={projects}
         active={activeProject}

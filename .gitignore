@@ -54,6 +54,8 @@ Cinematic.zip
 dev.db
 dev.db-journal
 pglite.data
-pgdata
+/pgdata
+/pgsql
+logfile
 .install-state.json
 !.install-state.json.example

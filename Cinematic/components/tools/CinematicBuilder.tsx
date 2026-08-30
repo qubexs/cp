@@ -109,7 +109,7 @@ export default function CinematicBuilder({ account, refreshAccount, openKeys }: 
             </span>
             <button onClick={openKeys} className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300 hover:border-fuchsia-500/60 hover:text-fuchsia-300">Keys {enabledKeys.length}/{account.keys.length}</button>
             <button onClick={() => setS({ ...DEFAULT_STATE, styleVisuals: [], scene: "", sceneRef: "", camera: "", spatialOrder: "", spatialOrderNote: "", propLock: "", action: "", performance: "", continuity: "", negativePrompt: "", characters: [], dialogues: [] })} className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300">+ Blank</button>
-            <button onClick={() => { setS(DEFAULT_STATE); setAiPromptImage(null); setAiPromptVideo(null); setShowBuilder(true); }} className="rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-xs text-zinc-300">Load Kampung Example</button>
+            <button onClick={() => { setS(DEFAULT_STATE); setAiPromptImage(null); setAiPromptVideo(null); setShowBuilder(true); }} className="rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-xs text-zinc-300">Load Example</button>
           </div>
         </div>
         <div className="mt-4 grid grid-cols-2 gap-2 rounded-xl bg-zinc-950 p-1">

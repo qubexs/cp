@@ -1,12 +1,13 @@
 "use client";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AttachZone from "@/components/AttachZone";
-import { advanceRotation, maskKey, nextRotationOrder, updateKeyStatus, type Account } from "@/lib/auth";
-import { buildCinematicImagePrompt, buildCinematicPrompt, buildCinematicUserPrompt, CINEMATIC_IMAGE_SYSTEM_PROMPT, CINEMATIC_SYSTEM_PROMPT, DEFAULT_STATE, PIXAR_DEFAULT, STYLE_PRESETS, type CinematicMode, type CinematicState } from "@/lib/cinematic";
+import { advanceRotation, maskKey, nextRotationOrderFromAccount, updateKeyStatus, type Account } from "@/lib/auth";
+import { buildCinematicImagePrompt, buildCinematicPrompt, buildCinematicUserPrompt, CINEMATIC_IMAGE_SYSTEM_PROMPT, CINEMATIC_SYSTEM_PROMPT, DEFAULT_STATE, ENV_PRESETS, PIXAR_DEFAULT, STYLE_PRESETS, type CinematicMode, type CinematicState } from "@/lib/cinematic";
 import { appendAttachmentParts, chatWithKeys, OpenRouterError, readAttachment } from "@/lib/openrouter";
 import { MODELS, type Attachment, type ModelChoice } from "@/lib/types";
 
-export default function CinematicBuilder({ account, refreshAccount, openKeys }: { account: Account; refreshAccount: () => void; openKeys: () => void }) {
+type Incoming = { sceneText: string; cinematicState?: unknown; imagePrompt?: string; videoPrompt?: string; sourceSceneId: string };
+export default function CinematicBuilder({ account, refreshAccount, openKeys, incoming, onConsumed }: { account: Account; refreshAccount: () => void; openKeys: () => void; incoming?: Incoming; onConsumed?: () => void }) {
   const [s, setS] = useState<CinematicState>(DEFAULT_STATE);
   const [mode, setMode] = useState<CinematicMode>("video");
   const [aiIdeaVideo, setAiIdeaVideo] = useState("lively Malaysian kampung weekly market with Atuk (elderly in kopiah) Atan (striped shirt) Acik (red shirt) walking to keropok lekor stall. Atuk holds orange plastic bag in RIGHT hand. Dialogue: Acik 'Sedapnya...' Penjual 'Mari dik, mari Atuk, 4 keping seringgit.' Atuk 'Haah, yang ni mesti kena beli.' Atan 'Ok Atuk, panas panas tu.' Keep spatial order Atuk-Atan-Acik-stall.");
@@ -24,8 +25,15 @@ export default function CinematicBuilder({ account, refreshAccount, openKeys }: 
   const [preview, setPreview] = useState<string | null>(null);
   const [fileName, setFileName] = useState("");
 
+  useEffect(() => {
+    if (!incoming) return;
+    if (incoming.cinematicState) setS(incoming.cinematicState as CinematicState);
+    else if (incoming.sceneText) setS((p) => ({ ...p, scene: incoming.sceneText }));
+    onConsumed?.();
+  }, [incoming, onConsumed]);
+
   const enabledKeys = useMemo(() => account.keys.filter((k) => k.enabled), [account]);
-  const nextKey = useMemo(() => nextRotationOrder(account.email)[0], [account]);
+  const nextKey = useMemo(() => nextRotationOrderFromAccount(account)[0], [account]);
   const manualImage = useMemo(() => buildCinematicImagePrompt(s), [s]);
   const manualVideo = useMemo(() => buildCinematicPrompt(s), [s]);
   const aiPrompt = mode === "image" ? aiPromptImage : aiPromptVideo;
@@ -57,7 +65,7 @@ export default function CinematicBuilder({ account, refreshAccount, openKeys }: 
   };
 
   const generate = useCallback(async () => {
-    const order = nextRotationOrder(account.email);
+    const order = nextRotationOrderFromAccount(account);
     if (!order.length) { setError("No enabled API keys. Add one in Key Manager."); openKeys(); return; }
     setError(null); setLoading(true);
     try {
@@ -93,7 +101,7 @@ export default function CinematicBuilder({ account, refreshAccount, openKeys }: 
   const clearAi = () => { if (mode === "image") setAiPromptImage(null); else setAiPromptVideo(null); };
 
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-6 w-full max-w-none">
       <div className="rounded-2xl border border-fuchsia-500/40 bg-zinc-900/60 p-5 shadow-xl shadow-black/30">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -108,8 +116,8 @@ export default function CinematicBuilder({ account, refreshAccount, openKeys }: 
               <span className={`h-1.5 w-1.5 rounded-full ${enabledKeys.length ? "bg-emerald-400" : "bg-red-400"}`} />{enabledKeys.length}/{account.keys.length} keys{nextKey ? ` · next: ${nextKey.label}` : ""}
             </span>
             <button onClick={openKeys} className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300 hover:border-fuchsia-500/60 hover:text-fuchsia-300">Keys {enabledKeys.length}/{account.keys.length}</button>
-            <button onClick={() => setS({ ...DEFAULT_STATE, styleVisuals: [], scene: "", sceneRef: "", camera: "", spatialOrder: "", spatialOrderNote: "", propLock: "", action: "", performance: "", continuity: "", negativePrompt: "", characters: [], dialogues: [] })} className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300">+ Blank</button>
-            <button onClick={() => { setS(DEFAULT_STATE); setAiPromptImage(null); setAiPromptVideo(null); setShowBuilder(true); }} className="rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-xs text-zinc-300">Load Kampung Example</button>
+            <button onClick={() => setS({ ...DEFAULT_STATE, styleVisuals: [], scene: "", sceneRef: "", camera: "", spatialOrder: "", spatialOrderNote: "", propLock: "", action: "", performance: "", continuity: "", negativePrompt: "", timeOfDay: DEFAULT_STATE.timeOfDay, colorTemp: DEFAULT_STATE.colorTemp, shadows: DEFAULT_STATE.shadows, vibe: DEFAULT_STATE.vibe, characters: [], dialogues: [] })} className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300">+ Blank</button>
+            <button onClick={() => { setS(DEFAULT_STATE); setAiPromptImage(null); setAiPromptVideo(null); setShowBuilder(true); }} className="rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-xs text-zinc-300">Load Example</button>
           </div>
         </div>
         <div className="mt-4 grid grid-cols-2 gap-2 rounded-xl bg-zinc-950 p-1">
@@ -149,91 +157,117 @@ export default function CinematicBuilder({ account, refreshAccount, openKeys }: 
       </div>
 
       {showBuilder && (
-        <>
-          <StyleMultiSelect value={s.styleVisuals} onChange={(v) => setS((p) => ({ ...p, styleVisuals: v }))} />
-          <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Locked Character Identity</label>
-              <button onClick={() => setS((p) => ({ ...p, characters: [...p.characters, { id: Date.now().toString(), name: "NewChar", code: "CHAR_LP", weight: "0.95", description: "" }] }))} className="rounded-lg bg-fuchsia-500/20 px-2 py-1 text-xs text-fuchsia-300">+ Add</button>
+        <div className="grid gap-6 xl:grid-cols-2">
+          <div className="grid gap-6 content-start">
+            <StyleMultiSelect value={s.styleVisuals} onChange={(v) => setS((p) => ({ ...p, styleVisuals: v }))} />
+            <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Locked Character Identity</label>
+                <button onClick={() => setS((p) => ({ ...p, characters: [...p.characters, { id: Date.now().toString(), name: "NewChar", code: "CHAR_LP", weight: "0.95", description: "" }] }))} className="rounded-lg bg-fuchsia-500/20 px-2 py-1 text-xs text-fuchsia-300">+ Add</button>
+              </div>
+              <div className="mt-3 grid gap-2">
+                {s.characters.map((c) => (
+                  <div key={c.id} className="grid grid-cols-[1fr_1fr_80px_1fr_auto] gap-2">
+                    <input value={c.name} onChange={(e) => setS((p) => ({ ...p, characters: p.characters.map((x) => (x.id === c.id ? { ...x, name: e.target.value } : x)) }))} placeholder="Name" className="rounded-lg border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-xs" />
+                    <input value={c.code} onChange={(e) => setS((p) => ({ ...p, characters: p.characters.map((x) => (x.id === c.id ? { ...x, code: e.target.value } : x)) }))} placeholder="Code" className="rounded-lg border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-xs" />
+                    <input value={c.weight} onChange={(e) => setS((p) => ({ ...p, characters: p.characters.map((x) => (x.id === c.id ? { ...x, weight: e.target.value } : x)) }))} placeholder="0.95" className="rounded-lg border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-xs" />
+                    <input value={c.description} onChange={(e) => setS((p) => ({ ...p, characters: p.characters.map((x) => (x.id === c.id ? { ...x, description: e.target.value } : x)) }))} placeholder="description" className="rounded-lg border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-xs" />
+                    <button onClick={() => setS((p) => ({ ...p, characters: p.characters.filter((x) => x.id !== c.id) }))} className="text-xs text-red-400">✕</button>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="mt-3 grid gap-2">
-              {s.characters.map((c) => (
-                <div key={c.id} className="grid grid-cols-[1fr_1fr_80px_1fr_auto] gap-2">
-                  <input value={c.name} onChange={(e) => setS((p) => ({ ...p, characters: p.characters.map((x) => (x.id === c.id ? { ...x, name: e.target.value } : x)) }))} placeholder="Name" className="rounded-lg border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-xs" />
-                  <input value={c.code} onChange={(e) => setS((p) => ({ ...p, characters: p.characters.map((x) => (x.id === c.id ? { ...x, code: e.target.value } : x)) }))} placeholder="Code" className="rounded-lg border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-xs" />
-                  <input value={c.weight} onChange={(e) => setS((p) => ({ ...p, characters: p.characters.map((x) => (x.id === c.id ? { ...x, weight: e.target.value } : x)) }))} placeholder="0.95" className="rounded-lg border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-xs" />
-                  <input value={c.description} onChange={(e) => setS((p) => ({ ...p, characters: p.characters.map((x) => (x.id === c.id ? { ...x, description: e.target.value } : x)) }))} placeholder="description" className="rounded-lg border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-xs" />
-                  <button onClick={() => setS((p) => ({ ...p, characters: p.characters.filter((x) => x.id !== c.id) }))} className="text-xs text-red-400">✕</button>
+            <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5 grid gap-3">
+              <label className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Scene {mode === "image" ? "(image)" : "(video)"}</label>
+              <textarea value={s.scene} onChange={(e) => update("scene", e.target.value)} rows={2} className="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none focus:border-fuchsia-500" />
+              <div onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); onUploadSceneRef(e.dataTransfer.files?.[0]); }} className="grid gap-2 rounded-xl border border-dashed border-zinc-700 bg-zinc-950 p-3">
+                <div className="flex gap-2">
+                  <button onClick={() => fileRef.current?.click()} className="flex-1 rounded-lg border border-fuchsia-500/40 bg-fuchsia-500/10 px-4 py-3 text-xs font-semibold text-fuchsia-300 hover:bg-fuchsia-500/20">📤 Click to Upload Scene Reference</button>
+                  <input ref={fileRef} type="file" accept="image/*,video/*" className="hidden" onChange={(e) => onUploadSceneRef(e.target.files?.[0])} />
+                  {preview && <button onClick={() => { setPreview(null); setFileName(""); update("sceneRef", ""); }} className="rounded-lg border border-zinc-700 px-3 py-2 text-xs text-zinc-400">Clear</button>}
                 </div>
-              ))}
+                <p className="text-center text-[11px] text-zinc-600">or drag & drop image/video here — also added to AI references</p>
+                {preview ? (
+                  <div className="overflow-hidden rounded-lg border border-zinc-800">
+                    <img src={preview} alt={fileName} className="max-h-48 w-full object-contain bg-black" />
+                    <p className="bg-zinc-900 px-2 py-1 text-center text-[11px] text-emerald-400">✓ {fileName} → {s.sceneRef} influence {s.sceneInfluence || "0.9"}</p>
+                  </div>
+                ) : s.sceneRef ? <p className="text-center text-[11px] text-zinc-500">Selected: {s.sceneRef}</p> : null}
+                <div className="grid grid-cols-[1fr_110px] gap-2">
+                  <input value={s.sceneRef} onChange={(e) => update("sceneRef", e.target.value)} placeholder="filename e.g. elderly_man_tomato_bag_1.webp" className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-xs" />
+                  <input value={s.sceneInfluence} onChange={(e) => update("sceneInfluence", e.target.value)} placeholder="0.9" className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-xs" />
+                </div>
+              </div>
+              {mode === "video" && (
+                <div className="grid grid-cols-3 gap-2">
+                  <L label="SEED" value={s.seed} onChange={(v) => update("seed", v)} />
+                  <L label="DURATION (s)" value={s.duration} onChange={(v) => update("duration", v)} />
+                  <L label="MOTION" value={s.motionStrength} onChange={(v) => update("motionStrength", v)} />
+                </div>
+              )}
             </div>
           </div>
-
-          <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5 grid gap-3">
-            <label className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Scene {mode === "image" ? "(image)" : "(video)"}</label>
-            <textarea value={s.scene} onChange={(e) => update("scene", e.target.value)} rows={2} className="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none focus:border-fuchsia-500" />
-            <div onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); onUploadSceneRef(e.dataTransfer.files?.[0]); }} className="grid gap-2 rounded-xl border border-dashed border-zinc-700 bg-zinc-950 p-3">
-              <div className="flex gap-2">
-                <button onClick={() => fileRef.current?.click()} className="flex-1 rounded-lg border border-fuchsia-500/40 bg-fuchsia-500/10 px-4 py-3 text-xs font-semibold text-fuchsia-300 hover:bg-fuchsia-500/20">📤 Click to Upload Scene Reference</button>
-                <input ref={fileRef} type="file" accept="image/*,video/*" className="hidden" onChange={(e) => onUploadSceneRef(e.target.files?.[0])} />
-                {preview && <button onClick={() => { setPreview(null); setFileName(""); update("sceneRef", ""); }} className="rounded-lg border border-zinc-700 px-3 py-2 text-xs text-zinc-400">Clear</button>}
-              </div>
-              <p className="text-center text-[11px] text-zinc-600">or drag & drop image/video here — also added to AI references</p>
-              {preview ? (
-                <div className="overflow-hidden rounded-lg border border-zinc-800">
-                  <img src={preview} alt={fileName} className="max-h-48 w-full object-contain bg-black" />
-                  <p className="bg-zinc-900 px-2 py-1 text-center text-[11px] text-emerald-400">✓ {fileName} → {s.sceneRef} influence {s.sceneInfluence || "0.9"}</p>
+          <div className="grid gap-6 content-start">
+            <Field label="Camera" value={s.camera} onChange={(v) => update("camera", v)} rows={3} />
+            <Field label="Spatial Order (left → right)" value={s.spatialOrder} onChange={(v) => update("spatialOrder", v)} rows={1} />
+            <Field label="Spatial Order Note" value={s.spatialOrderNote} onChange={(v) => update("spatialOrderNote", v)} rows={3} />
+            <Field label="Critical Prop Lock" value={s.propLock} onChange={(v) => update("propLock", v)} rows={3} />
+            {mode === "video" ? (
+              <>
+                <Field label="Action" value={s.action} onChange={(v) => update("action", v)} rows={3} />
+                <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Dialogue</label>
+                    <button onClick={() => setS((p) => ({ ...p, dialogues: [...p.dialogues, { id: Date.now().toString(), speaker: "", line: "", direction: "" }] }))} className="rounded-lg bg-fuchsia-500/20 px-2 py-1 text-xs text-fuchsia-300">+ Line</button>
+                  </div>
+                  <div className="mt-3 grid gap-2">
+                    {s.dialogues.map((d) => (
+                      <div key={d.id} className="grid grid-cols-[110px_1fr_1.2fr_auto] gap-2">
+                        <input value={d.speaker} onChange={(e) => setS((p) => ({ ...p, dialogues: p.dialogues.map((x) => (x.id === d.id ? { ...x, speaker: e.target.value } : x)) }))} placeholder="Speaker" className="rounded-lg border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-xs" />
+                        <input value={d.line} onChange={(e) => setS((p) => ({ ...p, dialogues: p.dialogues.map((x) => (x.id === d.id ? { ...x, line: e.target.value } : x)) }))} placeholder="Line" className="rounded-lg border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-xs" />
+                        <input value={d.direction} onChange={(e) => setS((p) => ({ ...p, dialogues: p.dialogues.map((x) => (x.id === d.id ? { ...x, direction: e.target.value } : x)) }))} placeholder="direction" className="rounded-lg border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-xs" />
+                        <button onClick={() => setS((p) => ({ ...p, dialogues: p.dialogues.filter((x) => x.id !== d.id) }))} className="text-xs text-red-400">✕</button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              ) : s.sceneRef ? <p className="text-center text-[11px] text-zinc-500">Selected: {s.sceneRef}</p> : null}
-              <div className="grid grid-cols-[1fr_110px] gap-2">
-                <input value={s.sceneRef} onChange={(e) => update("sceneRef", e.target.value)} placeholder="filename e.g. elderly_man_tomato_bag_1.webp" className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-xs" />
-                <input value={s.sceneInfluence} onChange={(e) => update("sceneInfluence", e.target.value)} placeholder="0.9" className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-xs" />
-              </div>
-            </div>
-            {mode === "video" && (
-              <div className="grid grid-cols-3 gap-2">
-                <L label="SEED" value={s.seed} onChange={(v) => update("seed", v)} />
-                <L label="DURATION (s)" value={s.duration} onChange={(v) => update("duration", v)} />
-                <L label="MOTION" value={s.motionStrength} onChange={(v) => update("motionStrength", v)} />
-              </div>
+                <Field label="Performance" value={s.performance} onChange={(v) => update("performance", v)} rows={2} />
+                <Field label="Continuity Lock" value={s.continuity} onChange={(v) => update("continuity", v)} rows={2} />
+              </>
+            ) : (
+              <>
+                <Field label="Performance / Pose" value={s.performance} onChange={(v) => update("performance", v)} rows={2} />
+                <Field label="Action (Pose for image)" value={s.action} onChange={(v) => update("action", v)} rows={2} />
+              </>
             )}
+            <Field label="Negative Prompt" value={s.negativePrompt} onChange={(v) => update("negativePrompt", v)} rows={4} />
           </div>
-
-          <Field label="Camera" value={s.camera} onChange={(v) => update("camera", v)} rows={3} />
-          <Field label="Spatial Order (left → right)" value={s.spatialOrder} onChange={(v) => update("spatialOrder", v)} rows={1} />
-          <Field label="Spatial Order Note" value={s.spatialOrderNote} onChange={(v) => update("spatialOrderNote", v)} rows={3} />
-          <Field label="Critical Prop Lock" value={s.propLock} onChange={(v) => update("propLock", v)} rows={3} />
-          {mode === "video" ? (
-            <>
-              <Field label="Action" value={s.action} onChange={(v) => update("action", v)} rows={3} />
-              <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Dialogue</label>
-                  <button onClick={() => setS((p) => ({ ...p, dialogues: [...p.dialogues, { id: Date.now().toString(), speaker: "", line: "", direction: "" }] }))} className="rounded-lg bg-fuchsia-500/20 px-2 py-1 text-xs text-fuchsia-300">+ Line</button>
-                </div>
-                <div className="mt-3 grid gap-2">
-                  {s.dialogues.map((d) => (
-                    <div key={d.id} className="grid grid-cols-[110px_1fr_1.2fr_auto] gap-2">
-                      <input value={d.speaker} onChange={(e) => setS((p) => ({ ...p, dialogues: p.dialogues.map((x) => (x.id === d.id ? { ...x, speaker: e.target.value } : x)) }))} placeholder="Speaker" className="rounded-lg border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-xs" />
-                      <input value={d.line} onChange={(e) => setS((p) => ({ ...p, dialogues: p.dialogues.map((x) => (x.id === d.id ? { ...x, line: e.target.value } : x)) }))} placeholder="Line" className="rounded-lg border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-xs" />
-                      <input value={d.direction} onChange={(e) => setS((p) => ({ ...p, dialogues: p.dialogues.map((x) => (x.id === d.id ? { ...x, direction: e.target.value } : x)) }))} placeholder="direction" className="rounded-lg border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-xs" />
-                      <button onClick={() => setS((p) => ({ ...p, dialogues: p.dialogues.filter((x) => x.id !== d.id) }))} className="text-xs text-red-400">✕</button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <Field label="Performance" value={s.performance} onChange={(v) => update("performance", v)} rows={2} />
-              <Field label="Continuity Lock" value={s.continuity} onChange={(v) => update("continuity", v)} rows={2} />
-            </>
-          ) : (
-            <>
-              <Field label="Performance / Pose" value={s.performance} onChange={(v) => update("performance", v)} rows={2} />
-              <Field label="Action (Pose for image)" value={s.action} onChange={(v) => update("action", v)} rows={2} />
-            </>
-          )}
-          <Field label="Negative Prompt" value={s.negativePrompt} onChange={(v) => update("negativePrompt", v)} rows={4} />
-        </>
+        </div>
       )}
+      <div className="rounded-2xl border border-emerald-500/30 bg-zinc-900/60 p-5">
+        <label className="text-xs font-semibold uppercase tracking-wider text-emerald-300">Environment (Locked — every prompt)</label>
+        <select
+          value={ENV_PRESETS.find((p) => p.timeOfDay === s.timeOfDay && p.colorTemp === s.colorTemp && p.shadows === s.shadows && p.vibe === s.vibe)?.id ?? "custom"}
+          onChange={(e) => {
+            const p = ENV_PRESETS.find((x) => x.id === e.target.value);
+            if (!p) return;
+            if (p.id === "custom") return;
+            setS((prev) => ({ ...prev, timeOfDay: p.timeOfDay, colorTemp: p.colorTemp, shadows: p.shadows, vibe: p.vibe }));
+          }}
+          className="mt-2 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-xs"
+        >
+          {ENV_PRESETS.map((p) => (
+            <option key={p.id} value={p.id}>{p.label}</option>
+          ))}
+        </select>
+        <div className="mt-3 grid gap-2">
+          <Field label="Time" value={s.timeOfDay} onChange={(v) => update("timeOfDay", v)} rows={1} />
+          <Field label="Color Temperature" value={s.colorTemp} onChange={(v) => update("colorTemp", v)} rows={1} />
+          <Field label="Shadows" value={s.shadows} onChange={(v) => update("shadows", v)} rows={1} />
+          <Field label="Vibe" value={s.vibe} onChange={(v) => update("vibe", v)} rows={1} />
+        </div>
+        <p className="mt-2 text-[11px] text-zinc-500">Choose preset or edit manually — all 4 fields are locked into every prompt (ENVIRONMENT block). Add more presets in lib/cinematic.ts → ENV_PRESETS.</p>
+      </div>
 
       <div className="rounded-2xl border border-fuchsia-500/40 bg-zinc-900/60 overflow-hidden shadow-xl shadow-black/30">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-800 px-4 py-3">
